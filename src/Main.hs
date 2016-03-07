@@ -1,49 +1,31 @@
-{-# LANGUAGE FlexibleInstances #-}
+module Main (main) where
 
-module Main where
-
-import Data.List ((\\), elemIndex)
-import Data.List.Split (splitOneOf)
+import Data.List (elemIndex)
+import Data.List.Split (splitOneOf, chunksOf)
 import Data.Char (toUpper)
+
+import Data.Set (Set)
+import Data.Set as Set (member, notMember, size, insert, empty)
 
 import System.Environment (getArgs)
 import System.IO.Unsafe (unsafePerformIO)
 import System.Time (getClockTime , ClockTime(..))
 
 import Grid
-import MapGenerator (minesMap)
+import MapGenerator (minePoints)
 import LayoutRender (draw)
 
-type Count  = [[Int]]
-
-class AddThree a where
-  add3 :: a -> a -> a -> a
-  zero :: a
-  addOffset :: [a] -> [a]
-  addOffset = zipOffset3 add3 zero
-  
-instance AddThree Int where
-  add3 n m p = n+m+p
-  zero       = 0
-
-instance AddThree [Int] where
-  add3 = zipWith3 add3
-  zero = repeat zero
-
--- Combine elementwise (i.e. zipWith3) the three lists:
---
---     z,a0,a1,a2,...
---    a0,a1,a2,...,an
---      a1,a2,...,an,z
---
--- using the ternary function f
--- Example: f is addition of three numbers, z is zero.
-zipOffset3 :: (a -> a -> a -> a) -> a -> [a] -> [a]
-zipOffset3 f z xs = zipWith3 f (z:xs) xs (tail xs ++ [z])
-
 -- | Calculate the number of surrounding mines for each point.
-surroundingMines :: [[Int]] -> [[Int]]
-surroundingMines = addOffset . map addOffset
+neighbourMines :: Set Point -> Int -> Int -> [[Int]]
+neighbourMines ps w h = chunksOf w $ map neighbourMinesOf (gridPoints w h)
+    where neighbourMinesOf :: Point -> Int
+          neighbourMinesOf s = foldr (\p acc -> acc + (fromEnum $ member p ps)) 0 (neighboursOf s)
+
+
+neighboursOf :: Point -> [Point]
+neighboursOf (x, y) = [(x, y - 1), (x, y + 1),
+                       (x + 1, y), (x + 1, y + 1), (x + 1, y - 1),
+                       (x - 1, y), (x - 1, y + 1), (x - 1, y - 1)]
 
 -- | Generate a random seed based on time
 sessionSeed :: Int
@@ -89,17 +71,14 @@ main :: IO ()
 main = do
     [width, height, num] <- getArgs
     let
-        w      = read width :: Int
+        w      = read width  :: Int
         h      = read height :: Int
-        mmap   = minesMap sessionSeed w h (read num :: Int)
+        mps    = minePoints sessionSeed w h (read num :: Int)
 
         counts :: [[Int]]
-        counts = surroundingMines mmap
+        counts = neighbourMines mps w h
 
-        opens :: [[Bool]]
-        opens  = map (map (const False)) mmap
-
-        play :: [[Bool]] -> IO ()
+        play :: Set Point -> IO ()
         play opens = do
             draw opens counts
             putStr "Input next uncover coordinate as \"row, column\": "
@@ -112,68 +91,29 @@ main = do
                 else do
                     putStr "\n"
                     let (Just coordinate) = maybeCoordinate
-                    if mmap !! (fst coordinate) !! (snd coordinate) == 1
+                    if coordinate `member` mps
                         then do
                             putStrLn "Game OVER!\n"
-                            return ()
-                        else
-                            play (uncoverNbhrs counts [coordinate] coordinate opens)
-    play opens
+                        else do
+                            let newOpens = uncover coordinate opens mps counts
+                            if Set.size newOpens == w * h - (Set.size mps)
+                                then putStrLn "Congratulations!\n"
+                                else play newOpens
+    play Set.empty
 
-
-
-
-
--- Transitively uncover all the neighbours of all the points in a list.
--- Repeatedly applies uncoverNbhrs
-uncoverNbhrsList :: [[Int]] -> [Point] -> [Point] -> 
-                    [[Bool]] -> [[Bool]]
-uncoverNbhrsList count avoid
-  = foldr (.) id . map (uncoverNbhrs count avoid)
-
--- Transitively uncover all the neighbours of a point.
--- First uncover the immediate neighbours, then call recursively on
--- all the neighbours with zero adjacency count.
-uncoverNbhrs :: [[Int]] -> [Point] -> Point -> 
-                [[Bool]] -> [[Bool]]
-uncoverNbhrs count avoid (p,q)
-  = uncoverNbhrsList count (avoid++nbhrs count (p,q)) 
-                           (nullNbhrs count (p,q) \\ avoid) 
-    .
-    ( foldr (.) id $ 
-      map ((flip.uncurry) updateArray True) (nbhrs count (p,q)) )
-
--- Update an array to have value x at position (n,m)
-updateArray :: Int -> Int -> a -> [[a]] -> [[a]]
-updateArray n m x xss = update n (update m (const x)) xss
-
--- Update list xs at index n to have value f (xs!!n)
--- Handles out of range indices
-update :: Int -> (a -> a) -> [a] -> [a]
-update n f xs = front ++ rear
+-- | Handle uncover event, recursively uncover neighbour Points if necessary.
+uncover :: Point -> Set Point -> Set Point -> [[Int]] -> Set Point
+uncover n@(x, y) opens minePoints counts
+    | counts !! x !! y /= 0 = Set.insert n opens
+    | otherwise             = let newOpens = Set.insert n opens
+                              in foldr (\p acc -> uncover p acc minePoints counts) newOpens
+                                    (safeUnopenedNeighbours n newOpens minePoints)
         where
-        (front,rest) = splitAt n xs
-        rear = case rest of
-            []    -> []
-            (h:t)    -> f h:t
-
-
--- What are the neighbours of a point?
-nbhrs :: [[Int]] -> Point -> [Point]
-nbhrs count (p,q)
-  = filter inGrid [ (p-1,q-1), (p-1,q), (p-1,q+1),
-                    (p,q-1),   (p,q),   (p,q+1),
-            (p+1,q-1), (p+1,q), (p+1,q+1) ]
-    where
-    inGrid (s,t) = 0<=s && s <= rows &&
-                   0<=t && t <= cols
-    rows = length count - 1
-    cols = length (head count) -1
-
-
--- What are the null nbhrs?
-nullNbhrs :: [[Int]] -> Point -> [Point]
-nullNbhrs count (p,q)
-  = filter zeroVal (nbhrs count (p,q))
-    where
-    zeroVal (s,t) = count!!s!!t==0
+            safeUnopenedNeighbours :: Point -> Set Point -> Set Point -> [Point]
+            safeUnopenedNeighbours p opens minePoints = [(x, y) | (x, y) <- neighboursOf p,
+                                                                              x >= 0 &&
+                                                                              x < (length counts) &&
+                                                                              y >= 0 &&
+                                                                              y < (length $ head counts) &&
+                                                                              (x, y) `notMember` minePoints &&
+                                                                              (x, y) `notMember` opens]
