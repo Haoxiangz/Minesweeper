@@ -1,23 +1,23 @@
-module LayoutRender (draw) where
+module LayoutRender ( draw ) where
 
 import Grid
 
 import Text.Tabular
-import Text.Tabular.AsciiArt (render)
+import Text.Tabular.AsciiArt ( render )
 
-import Data.List.Split (chunksOf)
+import Data.List.Split       ( chunksOf )
 
 import Data.Set (Set)
-import Data.Set as Set (member)
+import Data.Set as Set       ( member )
 
 -- | Put constructor Header on each element in sourceList.
 rangeHeader :: Int -> [String] -> [Header String]
-rangeHeader len sourceList = take len $ map (\s -> Header s) sourceList
+rangeHeader len sourceList = take len $ map Header sourceList
 
 -- | Draw the game's layout according to the open points and
 -- the number of neighbour mines for each point.
 draw :: Set Point -> [[Int]] -> IO ()
-draw opens nums = putStr $ render id id id $ gridLayout
+draw opens nums = putStr $ render id id id gridLayout
     where
         w    = length $ head nums
         h    = length nums
