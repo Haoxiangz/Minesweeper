@@ -13,7 +13,7 @@ import System.Environment ( getArgs )
 
 import Grid
 import MapGenerator       ( minePoints )
-import LayoutRender       ( draw )
+import LayoutRender       ( drawPlay, drawOver )
 
 -- | Calculate the number of surrounding mines for each point.
 neighbourMines :: Set Point -> Int -> Int -> [[Int]]
@@ -70,30 +70,34 @@ main = do
         h = read height :: Int
     case minePoints w h (read num :: Int) of
         Left err  -> putStrLn err
-        Right mps -> let nums :: [[Int]]
-                         nums = neighbourMines mps w h
+        Right minePs -> let nums :: [[Int]]
+                            nums = neighbourMines minePs w h
 
-                         play :: Set Point -> IO ()
-                         play opens = do
-                             draw opens nums
-                             putStr "Input next uncover coordinate as \"row, column\": "
-                             input <- getLine
-                             let maybeCoordinate = validateInput input w h
-                             if isNothing maybeCoordinate
-                                 then do
-                                     putStrLn "Invalid coordiate, please input again.\n"
-                                     play opens
-                                 else do
-                                     putStr "\n"
-                                     let (Just coordinate) = maybeCoordinate
-                                     if coordinate `member` mps
-                                         then putStrLn "Game OVER!\n"
-                                         else do
-                                             let newOpens = uncover coordinate opens mps nums
-                                             if Set.size newOpens == w * h - Set.size mps
-                                                 then putStrLn "Congratulations!\n"
-                                                 else play newOpens
-                     in play Set.empty
+                            play :: Set Point -> IO ()
+                            play opens = do
+                                drawPlay opens nums
+                                putStr "Input next uncover coordinate as \"row, column\": "
+                                input <- getLine
+                                let maybeCoordinate = validateInput input w h
+                                if isNothing maybeCoordinate
+                                    then do
+                                        putStrLn "Invalid coordiate, please input again.\n"
+                                        play opens
+                                    else do
+                                        putStr "\n"
+                                        let (Just coordinate) = maybeCoordinate
+                                        if coordinate `member` minePs
+                                            then do
+                                               drawOver minePs nums
+                                               putStrLn "Game OVER! You may want to try again?\n"
+                                            else do
+                                                let newOpens = uncover coordinate opens minePs nums
+                                                if Set.size newOpens == w * h - Set.size minePs
+                                                    then do
+                                                        drawPlay newOpens nums
+                                                        putStrLn "Congratulations!\n"
+                                                    else play newOpens
+                        in play Set.empty
 
 -- | Handle uncover event, recursively uncover neighbour Points if necessary.
 uncover :: Point -> Set Point -> Set Point -> [[Int]] -> Set Point

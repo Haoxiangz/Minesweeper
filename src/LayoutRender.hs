@@ -1,4 +1,4 @@
-module LayoutRender ( draw ) where
+module LayoutRender ( drawPlay, drawOver ) where
 
 import Grid
 
@@ -14,29 +14,38 @@ import Data.Set as Set       ( member )
 rangeHeader :: Int -> [String] -> [Header String]
 rangeHeader len sourceList = take len $ map Header sourceList
 
--- | Draw the game's layout according to the open points and
--- the number of neighbour mines for each point.
-draw :: Set Point -> [[Int]] -> IO ()
-draw opens nums = putStr $ render id id id gridLayout
-    where
-        w    = length $ head nums
-        h    = length nums
+-- | Draw the game's layout according to the convert function and
+-- the array of number of neighbour mines of each Point.
+draw :: (Point -> String) -> [[Int]] -> IO ()
+draw convert nums = putStr $ render id id id gridLayout
+    where w    = length $ head nums
+          h    = length nums
 
-        grid :: [[Point]]
-        grid = chunksOf w $ gridPoints w h
+          grid :: [[Point]]
+          grid = chunksOf w $ gridPoints w h
 
-        -- | Convert a Point position to its representation,
-        -- either black block or number of mines, according to
-        -- the open status list (opens) and the number of
-        -- number of surrounding mines (nums).
-        convert :: Point -> String
-        convert p@(x, y) | p `member` opens = show $ nums !! x !! y
-                         | otherwise        = ['\x2588']
+          gridLayout :: Table String String String
+          gridLayout = Table
+              (Group SingleLine
+                  [ Group SingleLine $ rangeHeader h [[c] | c <- rows] ])
+              (Group SingleLine
+                  [ Group SingleLine $ rangeHeader w [show n | n <- [0..]] ])
+              (map (map convert) grid)
 
-        gridLayout :: Table String String String
-        gridLayout = Table
-            (Group SingleLine
-                [ Group SingleLine $ rangeHeader h [[c] | c <- rows] ])
-            (Group SingleLine
-                [ Group SingleLine $ rangeHeader w [show n | n <- [0..]] ])
-            (map (map convert) grid)
+-- | Draw the game's layout according to the open Points and
+-- the array of number of neighbour mines of each Point.
+drawPlay opens nums = draw convert nums
+    where -- | Convert a Point position to its representation,
+          -- either black block or number of neighbour mines.
+          convert :: Point -> String
+          convert p@(x, y) | p `member` opens = show $ nums !! x !! y
+                           | otherwise        = ['\x2588']
+
+-- | Draw the game over layout.
+drawOver :: Set Point -> [[Int]] -> IO ()
+drawOver minePs nums = draw convert nums
+        where -- | Convert a Point position to its representation,
+              -- either black block or number of neighbour mines.
+              convert :: Point -> String
+              convert p@(x, y) | p `member` minePs = "*"
+                               | otherwise         = show $ nums !! x !! y
