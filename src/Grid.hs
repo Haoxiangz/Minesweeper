@@ -8,4 +8,8 @@ type Point = (Int, Int)
 gridPoints :: Int -> Int -> [Point]
 gridPoints w h = [(r, c) | r <- [0 .. h - 1], c <- [0 .. w - 1]]
 
+-- | Get tuple (width, height) from a two dimension list.
+dimension :: [[Int]] -> (Int, Int)
+dimension a = (length $ head a, length a)
+
 rows = ['A'..'Z']

@@ -9,22 +9,18 @@ import System.Random    ( randomRs, newStdGen, split )
 
 import System.IO.Unsafe ( unsafePerformIO )
 
--- | Generate all the mine Points.
-minePoints :: Int -> Int -> Int -> Either String (Set Point)
-minePoints w h minePs | minePs > maxMines = Left $ "Number of mines should less then " ++ show maxMines
-                      | h > maxHeight     = Left $ "Number of rows should no large then " ++ show maxHeight
-                      | otherwise         = Right $ collect Set.empty (rands w h)
-    where
-        maxMines = w * h `quot` 2
-        maxHeight = length rows
-
-        -- | Collect mines non-repetitive Points.
-        collect :: Set Point -> [Point] -> Set Point
-        collect ps (h:t)
-            | Set.size ps >= minePs = ps
-            | otherwise             = if h `member` ps
-                                        then collect ps t
-                                        else collect (insert h ps) t
+-- | Generate all the mine Points excluding the initial point.
+minePoints :: Int -> Int -> Int -> Point -> Set Point
+minePoints w h count point = collect empty (rands w h)
+    where  -- Collect mines non-repetitive Points.
+           collect :: Set Point -> [Point] -> Set Point
+           collect ps (x:xs)
+               | size ps >= min count (w * h - 1) = ps  -- the max available mine positions
+                                                            -- is w * h - 1, where 1 is the
+                                                            -- initial point
+               | otherwise                        = if x `member` ps || x == point
+                                                        then collect ps xs
+                                                        else collect (insert x ps) xs
 
 -- | Produce an infinite list of random Points
 rands :: Int -> Int -> [Point]
