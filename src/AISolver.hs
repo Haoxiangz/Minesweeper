@@ -42,7 +42,7 @@ seqSetToSeqList :: Seq (Set Point) -> Seq [Point]
 seqSetToSeqList = Seq.mapWithIndex (\_ sp -> toAscList sp)
 
 -- | Get continuous Points in a group, and return all these groups in a list.
-getCoastalPathes :: Int -> Int -> Seq [Point]
+getCoastalPathes :: Int -> Int -> Set Point -> Seq [Point]
 getCoastalPathes w h opens = seqSetToSeqList $
     groupContinuousPs (classifyNeighboursByOpens w h opens) 0
 
