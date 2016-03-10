@@ -1,4 +1,4 @@
-module Grid where
+module Util where
 
 type Point = (Int, Int)
 
@@ -13,3 +13,8 @@ dimension :: [[Int]] -> (Int, Int)
 dimension a = (length $ head a, length a)
 
 rows = ['A'..'Z']
+
+neighboursOf :: Point -> [Point]
+neighboursOf (r, c) = [(r, c - 1), (r, c + 1),
+                       (r + 1, c), (r + 1, c + 1), (r + 1, c - 1),
+                       (r - 1, c), (r - 1, c + 1), (r - 1, c - 1)]

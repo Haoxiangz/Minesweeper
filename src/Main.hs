@@ -11,21 +11,16 @@ import Data.Maybe         ( isNothing )
 
 import System.Environment ( getArgs )
 
-import Grid
+import Util
 import MapGenerator       ( minePoints )
 import LayoutRender       ( drawPlay, drawOver )
+import AISolver           ( getCoastalPathes )
 
 -- | Calculate the number of surrounding mines for each point.
 neighbourMines :: Set Point -> Int -> Int -> [[Int]]
 neighbourMines minePs w h = chunksOf w $ map neighbourMinesOf (gridPoints w h)
     where neighbourMinesOf :: Point -> Int
           neighbourMinesOf s = foldr (\p acc -> acc + fromEnum (member p minePs)) 0 (neighboursOf s)
-
-
-neighboursOf :: Point -> [Point]
-neighboursOf (r, c) = [(r, c - 1), (r, c + 1),
-                       (r + 1, c), (r + 1, c + 1), (r + 1, c - 1),
-                       (r - 1, c), (r - 1, c + 1), (r - 1, c - 1)]
 
 -- | Validate the input string, and convert it to Point.
 --
@@ -66,7 +61,7 @@ validateInput input w h =
 play :: Set Point -> Set Point -> [[Int]] -> Int -> IO ()
 play opens minePs nums count = do
     drawPlay opens nums
-    putStr "Input next uncover point as \"row, column\": "
+    putStr "Input next point to reveal as \"row, column\": "
     input <- getLine
     let (w, h) = dimension nums
         maybePoint = validateInput input w h
@@ -86,7 +81,7 @@ play opens minePs nums count = do
                     update opens minePs nums count point
 
 -- | An extract function from play. This function is responsible for
--- updating the cover state of each Point and the game layout.
+-- updating the open state of Points and the game layout.
 update :: Set Point -> Set Point -> [[Int]] -> Int -> Point -> IO ()
 update opens minePs nums count point =
     if point `member` minePs
@@ -94,7 +89,7 @@ update opens minePs nums count point =
             drawOver minePs nums
             putStrLn "Game OVER! You may want to try again?\n"
         else do
-            let newOpens = uncover point opens minePs nums
+            let newOpens = reveal point opens minePs nums
                 (w, h) = dimension nums
             if size newOpens == w * h - size minePs
                 then do
@@ -102,13 +97,13 @@ update opens minePs nums count point =
                     putStrLn "Congratulations!\n"
                 else play newOpens minePs nums count
 
--- | Handle uncover event, recursively uncover neighbour Points if necessary.
-uncover :: Point -> Set Point -> Set Point -> [[Int]] -> Set Point
-uncover n@(r, c) opens minePs nums
+-- | Handle reveal event, recursively reveal neighbour Points if necessary.
+reveal :: Point -> Set Point -> Set Point -> [[Int]] -> Set Point
+reveal n@(r, c) opens minePs nums
     | n `member` opens    = opens   -- Point n already opened
     | nums !! r !! c /= 0 = insert n opens
     | otherwise           = let newOpens = insert n opens
-                            in foldr (\p acc -> uncover p acc minePs nums) newOpens
+                            in foldr (\p acc -> reveal p acc minePs nums) newOpens
                                   (safeUnopenedNeighbours n newOpens minePs)
         where
             (w, h) = dimension nums

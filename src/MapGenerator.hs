@@ -1,6 +1,6 @@
 module MapGenerator ( minePoints ) where
 
-import Grid
+import Util
 
 import Data.Set         ( Set )
 import Data.Set as Set  ( size, insert, empty, member )

@@ -1,6 +1,6 @@
 module LayoutRender ( drawPlay, drawOver ) where
 
-import Grid
+import Util
 
 import Text.Tabular
 import Text.Tabular.AsciiArt ( render )
