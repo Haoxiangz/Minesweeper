@@ -3,8 +3,8 @@ module AISolver ( showAllPossibleSafePoints ) where
 import Util
 
 import Data.Set             ( Set )
-import Data.Set as Set      ( foldr, null, fromList, notMember, union, intersection, size
-                            , toAscList, insert, empty, member, filter )
+import Data.Set as Set      ( foldr, null, notMember, union, intersection, size, toAscList
+                            , insert, empty, member, filter )
 
 import Data.Sequence        ( Seq )
 import Data.Sequence as Seq ( empty, filter, (<|), update, index, findIndexL, drop, take
