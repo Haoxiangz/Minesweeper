@@ -1,11 +1,11 @@
 module Main ( main ) where
 
-import Data.List          ( elem, elemIndex )
+import Data.List          ( elemIndex )
 import Data.List.Split    ( splitOneOf, chunksOf )
 import Data.Char          ( toUpper )
 
 import Data.Set           ( Set )
-import Data.Set as Set    ( member, notMember, size, insert, empty, null)
+import Data.Set as Set    ( member, notMember, size, insert, empty, null, foldr, filter)
 
 import Data.Maybe         ( isNothing )
 
@@ -14,48 +14,56 @@ import System.Environment ( getArgs )
 import Util
 import MapGenerator       ( minePoints )
 import LayoutRender       ( drawPlay, drawOver )
-import AISolver           ( getCoastalPathes )
+import AISolver           ( showAllPossibleSafePoints )
 
 -- | Calculate the number of surrounding mines for each point.
 neighbourMines :: Set Point -> Int -> Int -> [[Int]]
 neighbourMines minePs w h = chunksOf w $ map neighbourMinesOf (gridPoints w h)
     where neighbourMinesOf :: Point -> Int
-          neighbourMinesOf s = foldr (\p acc -> acc + fromEnum (member p minePs)) 0 (neighboursOf s)
+          neighbourMinesOf s = Set.foldr (\p acc -> acc + fromEnum (member p minePs)) 0 (neighboursOf w h s)
 
--- | Validate the input string, and convert it to Point.
+data InputType =
+    Type Point | Help | Error deriving (Eq)
+
+-- | Validate the input string.
 --
--- A valid input should be " *row *[,.;] *col *", in which
--- row is a letter which order is less then (h - 1), and
--- col is a number which is less then (w - 1).
-validateInput :: String -> Int -> Int -> Maybe Point
+-- A valid input should be "help", or " *row *[,.;] *col *",
+-- in which row is a letter which order is less then (h - 1),
+-- and col is a number which is less then (w - 1).
+validateInput :: String -> Int -> Int -> InputType
 validateInput input w h =
-    let arr = splitOneOf ",.;" $ filter (/= ' ') input
+    let cleanInput = Prelude.filter (/= ' ') input
     in
-        if length arr /= 2
-            then Nothing
+        if (not $ Prelude.null cleanInput) && (toUpper $ head cleanInput) == '?'
+            then Help
             else
-                let letter = head arr
+                let arr = splitOneOf ",.;" cleanInput
                 in
-                    if length letter /= 1
-                        then Nothing
+                    if length arr /= 2
+                        then Error
                         else
-                            let [l] = letter
-                                maybeIndex = toUpper l `elemIndex` rows
+                            let letter = head arr
                             in
-                                if isNothing maybeIndex
-                                    then Nothing
+                                if length letter /= 1
+                                    then Error
                                     else
-                                        let (Just row) = maybeIndex
+                                        let [l] = letter
+                                            maybeIndex = toUpper l `elemIndex` rows
                                         in
-                                            if row  > h - 1
-                                                then Nothing
+                                            if isNothing maybeIndex
+                                                then Error
                                                 else
-                                                    let numStr = arr !! 1
-                                                    in case reads numStr :: [(Int, String)] of -- Determine if a string is Int
-                                                        [(col, "")] -> if col > w - 1
-                                                                            then Nothing
-                                                                            else Just (row, col)
-                                                        _           -> Nothing
+                                                    let (Just row) = maybeIndex
+                                                    in
+                                                        if row  > h - 1
+                                                            then Error
+                                                            else
+                                                                let numStr = arr !! 1
+                                                                in case reads numStr :: [(Int, String)] of -- Determine if a string is Int
+                                                                    [(col, "")] -> if col > w - 1
+                                                                                        then Error
+                                                                                        else Type (row, col)
+                                                                    _           -> Error
 
 -- | Control the whole interactive process during game.
 play :: Set Point -> Set Point -> [[Int]] -> Int -> IO ()
@@ -64,21 +72,27 @@ play opens minePs nums count = do
     putStr "Input next point to reveal as \"row, column\": "
     input <- getLine
     let (w, h) = dimension nums
-        maybePoint = validateInput input w h
-    if isNothing maybePoint
+        inputType = validateInput input w h
+    if inputType == Error || (inputType == Help && Set.null minePs)
         then do
             putStrLn "Invalid coordiate, please input again.\n"
             play opens minePs nums count
-        else do
-            putStrLn ""
-            let (Just point) = maybePoint
-            if Set.null minePs -- Postpone the mine Points generation to the first hit
-                then do
-                    let minePs' = minePoints w h count point
-                        nums'   = neighbourMines minePs' w h
-                    update opens minePs' nums' count point
-                else
-                    update opens minePs nums count point
+
+        -- Only able to show possible safe Points after the first reveal.
+        else if inputType == Help
+            then do
+                putStrLn $ showAllPossibleSafePoints w h opens nums
+                play opens minePs nums count
+            else do
+                putStrLn ""
+                let Type point = inputType
+                if Set.null minePs -- Postpone the mine Points generation to the first hit
+                    then do
+                        let minePs' = minePoints w h count point
+                            nums'   = neighbourMines minePs' w h
+                        update opens minePs' nums' count point
+                    else
+                        update opens minePs nums count point
 
 -- | An extract function from play. This function is responsible for
 -- updating the open state of Points and the game layout.
@@ -99,21 +113,19 @@ update opens minePs nums count point =
 
 -- | Handle reveal event, recursively reveal neighbour Points if necessary.
 reveal :: Point -> Set Point -> Set Point -> [[Int]] -> Set Point
-reveal n@(r, c) opens minePs nums
-    | n `member` opens    = opens   -- Point n already opened
-    | nums !! r !! c /= 0 = insert n opens
-    | otherwise           = let newOpens = insert n opens
-                            in foldr (\p acc -> reveal p acc minePs nums) newOpens
-                                  (safeUnopenedNeighbours n newOpens minePs)
+reveal n opens minePs nums
+    | n `member` opens       = opens   -- Point n already opened
+    | numAtPoint nums n /= 0 = insert n opens
+    | otherwise              = let newOpens = insert n opens
+                               in Set.foldr (\p acc -> reveal p acc minePs nums) newOpens
+                                     (safeUnopenedNeighbours n newOpens minePs)
         where
             (w, h) = dimension nums
-            allPoints = gridPoints w h
 
-            safeUnopenedNeighbours :: Point -> Set Point -> Set Point -> [Point]
-            safeUnopenedNeighbours p opens minePs = [(r, c) | (r, c) <- neighboursOf p,
-                                                              (r, c) `elem` allPoints &&
-                                                              (r, c) `notMember` minePs &&
-                                                              (r, c) `notMember` opens]
+            safeUnopenedNeighbours :: Point -> Set Point -> Set Point -> Set Point
+            safeUnopenedNeighbours p opens minePs =
+                Set.filter (\nb -> nb `notMember` minePs && nb `notMember` opens) (neighboursOf w h p)
+
 
 main :: IO ()
 main = do

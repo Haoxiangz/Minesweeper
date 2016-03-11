@@ -37,8 +37,8 @@ drawPlay opens nums = draw convert nums
     where -- Convert a Point position to its representation,
           -- either black block or number of neighbour mines.
           convert :: Point -> String
-          convert p@(r, c) | p `member` opens = show $ nums !! r !! c
-                           | otherwise        = ['\x2588']
+          convert p | p `member` opens = show $ numAtPoint nums p
+                    | otherwise        = ['\x2588']
 
 -- | Draw the game over layout.
 drawOver :: Set Point -> [[Int]] -> IO ()
@@ -46,5 +46,5 @@ drawOver minePs nums = draw convert nums
         where -- Convert a Point position to its representation in
               -- String, either black block or number of neighbour mines.
               convert :: Point -> String
-              convert p@(r, c) | p `member` minePs = "*"
-                               | otherwise         = show $ nums !! r !! c
+              convert p | p `member` minePs = "*"
+                        | otherwise         = show $ numAtPoint nums p
