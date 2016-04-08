@@ -20,4 +20,4 @@ The possible safe sqaures from output are
 Each sublist in the result represents the possible safe locations in the relative continuous path. For the continuous path in the upper left corner, the result shows (A, 0) is a safe location. For the bottom left corner, the result shows (H, 1), (I, 1), (J, 1) are the three safe locations. Beside its precision, in the bottom right corner, there is one mine hidden among the two closed squares marked in red line. Based on the number information only, this program produces a possible suggestion by guessing one of them.
 
 
-Reference Paper: [Minesweeper and AI Solver Implementation in Haskell] (https://drive.google.com/file/d/0B9Q3i4Vp4rm2RGxhZWVfSEVCUXM/view?usp=sharing])
+Reference Paper: [Minesweeper and AI Solver Implementation in Haskell] (https://drive.google.com/open?id=0B9Q3i4Vp4rm2cU0tOTNiMkRLeE0)
