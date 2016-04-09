@@ -1,5 +1,7 @@
 # Minesweeper
 
+[![Build Status](https://travis-ci.org/ljishen/Minesweeper.svg?branch=master)](https://travis-ci.org/ljishen/Minesweeper)
+
 An ASCII style Minesweeper, and AI solver implemented by using backtracking algorithm written in Haskell.
 
 **Features**
