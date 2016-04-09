@@ -15,7 +15,10 @@ cabal-version:        >=1.10
 
 executable Minesweeper
   main-is:              Main.hs
-  -- other-modules:
+  other-modules:        AISolver
+                      , LayoutRender
+                      , MapGenerator
+                      , Util
   -- other-extensions:
   build-depends:        base >= 4.2 && < 5
                       , containers
