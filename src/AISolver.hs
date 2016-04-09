@@ -60,7 +60,7 @@ backTracking w h opens nums (x:xs) mineFlags | verify x True  =
     where nbOpenNumPs p             = getNeighbourOpenNumPs w h p opens nums
           numMineFlagInNeighbours p = Set.size $ Set.filter (`member` mineFlags) (neighboursOf w h p)
           numUnknowNeighbours p     =
-              length $ Prelude.filter (`member` neighhours) xs
+              Prelude.length $ Prelude.filter (`member` neighhours) xs
                   where neighhours = neighboursOf w h p
 
           -- Verify all the neighbour number open Point of p based on the mine assuming.
