@@ -11,7 +11,7 @@ The following image shows two **continuous path** in red
 
 ![Two continuous path in red](https://raw.githubusercontent.com/ljishen/Minesweeper/master/Two%20continuous%20path%20in%20red.png)
 
-The possible safe sqaures from output are
+The output of possible safe sqaures from the following square map are
 
 **[[('A',0)],[('B',7),('B',8)],[('H',1),('I',1),('J',1)],[('G',6),('G',7),('G',9),('H',7),('H',8),('J',8)]]**
 
