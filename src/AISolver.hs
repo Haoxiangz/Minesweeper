@@ -8,7 +8,7 @@ import Data.Set as Set      ( foldr, null, notMember, union, intersection, size,
 
 import Data.Sequence        ( Seq )
 import Data.Sequence as Seq ( empty, filter, (<|), update, index, findIndexL, drop, take
-                            , (><), mapWithIndex, foldrWithIndex )
+                            , (><), mapWithIndex, foldrWithIndex, length )
 
 -- | Find all unrevealed neighbours of an opened Point as a Set for
 -- all open Points, and put all the sets in a Sequence.
@@ -20,7 +20,7 @@ classifyNeighboursByOpens w h opens =
 
 -- | Make continuous Points in a group, and return all these groups in a Sequence.
 groupContinuousPs :: Seq (Set Point) -> Int -> Seq (Set Point)
-groupContinuousPs seq location | location >= length seq - 1      = seq
+groupContinuousPs seq location | location >= Seq.length seq - 1      = seq
                                | Just n <- findGroupNeighbour ed =
                                      groupContinuousPs (Seq.take location seq ><
                                                             Seq.update n (st `union` (ed `index` n)) ed) location
