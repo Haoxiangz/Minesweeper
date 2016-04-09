@@ -7,11 +7,11 @@ An ASCII style Minesweeper, and AI solver implemented by using backtracking algo
 - The AI solver can output a set of possible safe squares for each continuous path
 - The output set includes all determinable safe squares
 
-The following image shows two **continuous path** in red
+One key concept in this implementation is **continuous path**. The following image shows two continuous paths in red
 
 ![Two continuous path in red](https://raw.githubusercontent.com/ljishen/Minesweeper/master/Two%20continuous%20path%20in%20red.png)
 
-The output of possible safe sqaures from the following square map are
+Here is an example output for the following square map,
 
 **[[('A',0)],[('B',7),('B',8)],[('H',1),('I',1),('J',1)],[('G',6),('G',7),('G',9),('H',7),('H',8),('J',8)]]**
 
