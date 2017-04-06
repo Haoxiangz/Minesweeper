@@ -29,4 +29,4 @@ One key concept in this implementation is **continuous path**. The following ima
 Reference Paper
 ---------------
 
-[Minesweeper and AI Solver Implementation in Haskell] (https://drive.google.com/open?id=0B9Q3i4Vp4rm2cU0tOTNiMkRLeE0)
+[Minesweeper and AI Solver Implementation in Haskell](https://drive.google.com/open?id=0B9Q3i4Vp4rm2cU0tOTNiMkRLeE0)
