@@ -1,4 +1,4 @@
-module AISolver ( showAllPossibleSafePoints ) where
+module AISolver ( showAllPossibleSafePoints, allPossibleSafePoints ) where
 
 import Util
 

@@ -14,7 +14,7 @@ import System.Environment ( getArgs )
 import Util
 import MapGenerator       ( minePoints )
 import LayoutRender       ( drawPlay, drawOver )
-import AISolver           ( showAllPossibleSafePoints )
+import AISolver           ( showAllPossibleSafePoints, allPossibleSafePoints )
 
 -- | Calculate the number of surrounding mines for each point.
 neighbourMines :: Set Point -> Int -> Int -> [[Int]]
@@ -69,30 +69,46 @@ validateInput input w h =
 play :: Set Point -> Set Point -> [[Int]] -> Int -> IO ()
 play opens minePs nums count = do
     drawPlay opens nums
-    putStr "Input next point to reveal as \"row, column\": "
-    input <- getLine
     let (w, h) = dimension nums
-        inputType = validateInput input w h
-    if inputType == Error || (inputType == Help && Set.null minePs)
+    if Set.null minePs
         then do
-            putStrLn "Invalid coordiate, please input again.\n"
-            play opens minePs nums count
+            let point   = (3, 2)
+                minePs' = minePoints w h count point
+                nums'   = neighbourMines minePs' w h
+            update opens minePs' nums' count point
+        else do
+            let valid_moves = allPossibleSafePoints w h opens nums
+            if length valid_moves > 0
+                then do 
+                    putStrLn $ showAllPossibleSafePoints w h opens nums
+                    update opens minePs nums count $ head $ Prelude.foldr (++) [] valid_moves
+                else do
+                    putStrLn "No more safe moves.\n"
 
-        -- Only able to show possible safe Points after the first reveal.
-        else if inputType == Help
-            then do
-                putStrLn $ showAllPossibleSafePoints w h opens nums
-                play opens minePs nums count
-            else do
-                putStrLn ""
-                let Type point = inputType
-                if Set.null minePs -- Postpone the mine Points generation to the first hit
-                    then do
-                        let minePs' = minePoints w h count point
-                            nums'   = neighbourMines minePs' w h
-                        update opens minePs' nums' count point
-                    else
-                        update opens minePs nums count point
+    -- putStr "Input next point to reveal as \"row, column\": "
+    -- input <- getLine
+    -- let (w, h) = dimension nums
+    --     inputType = validateInput input w h
+    -- if inputType == Error || (inputType == Help && Set.null minePs)
+    --     then do
+    --         putStrLn "Invalid coordiate, please input again.\n"
+    --         play opens minePs nums count
+
+    --     -- Only able to show possible safe Points after the first reveal.
+    --     else if inputType == Help
+    --         then do
+    --             putStrLn $ showAllPossibleSafePoints w h opens nums
+    --             play opens minePs nums count
+    --         else do
+    --             putStrLn ""
+    --             let Type point = inputType
+    --             if Set.null minePs -- Postpone the mine Points generation to the first hit
+    --                 then do
+    --                     let minePs' = minePoints w h count point
+    --                         nums'   = neighbourMines minePs' w h
+    --                     update opens minePs' nums' count point
+    --                 else
+    --                     update opens minePs nums count point
 
 -- | An extract function from play. This function is responsible for
 -- updating the open state of Points and the game layout.
