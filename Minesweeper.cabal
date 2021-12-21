@@ -25,5 +25,7 @@ executable Minesweeper
                       , random
                       , split
                       , tabular
+                      , monad-par
+                      , parallel
   hs-source-dirs:       src
   default-language:     Haskell2010
