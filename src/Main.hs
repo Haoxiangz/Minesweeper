@@ -17,56 +17,13 @@ import System.Random      ( randomR, mkStdGen )
 import Util
 import MapGenerator       ( minePoints )
 import LayoutRender       ( drawPlay, drawOver )
-import AISolver           ( showAllPossibleSafePoints, allPossibleSafePoints, nextMove )
+import AISolver           ( showAllPossibleSafePoints, nextMove )
 
 -- | Calculate the number of surrounding mines for each point.
 neighbourMines :: Set Point -> Int -> Int -> [[Int]]
 neighbourMines minePs w h = chunksOf w $ map neighbourMinesOf (gridPoints w h)
     where neighbourMinesOf :: Point -> Int
           neighbourMinesOf s = Set.foldr (\p acc -> acc + fromEnum (member p minePs)) 0 (neighboursOf w h s)
-
-data InputType =
-    Type Point | Help | Error deriving (Eq)
-
--- | Validate the input string.
---
--- A valid input should be "help", or " *row *[,.;] *col *",
--- in which row is a letter which order is less then (h - 1),
--- and col is a number which is less then (w - 1).
-validateInput :: String -> Int -> Int -> InputType
-validateInput input w h =
-    let cleanInput = Prelude.filter (/= ' ') input
-    in
-        if (not $ Prelude.null cleanInput) && (toUpper $ head cleanInput) == '?'
-            then Help
-            else
-                let arr = splitOneOf ",.;" cleanInput
-                in
-                    if length arr /= 2
-                        then Error
-                        else
-                            let letter = head arr
-                            in
-                                if length letter /= 1
-                                    then Error
-                                    else
-                                        let [l] = letter
-                                            maybeIndex = toUpper l `elemIndex` rows
-                                        in
-                                            if isNothing maybeIndex
-                                                then Error
-                                                else
-                                                    let (Just row) = maybeIndex
-                                                    in
-                                                        if row  > h - 1
-                                                            then Error
-                                                            else
-                                                                let numStr = arr !! 1
-                                                                in case reads numStr :: [(Int, String)] of -- Determine if a string is Int
-                                                                    [(col, "")] -> if col > w - 1
-                                                                                        then Error
-                                                                                        else Type (row, col)
-                                                                    _           -> Error
 
 -- | Control the whole interactive process during game.
 play :: Set Point -> Set Point -> [[Int]] -> Int -> IO ()
@@ -80,7 +37,7 @@ play opens minePs nums count = do
                 gen = mkStdGen 42
                 row = fst $ randomR (0, w-1) gen
                 col = fst $ randomR (0, h-1) gen
-                point   = (3,3)
+                point   = (3,3)             -- or you could use row col for random start 
                 minePs' = minePoints w h count point
                 nums'   = neighbourMines minePs' w h
             print point
@@ -94,30 +51,6 @@ play opens minePs nums count = do
                 else do
                     putStrLn "No more safe moves.\n"
 
-    -- putStr "Input next point to reveal as \"row, column\": "
-    -- input <- getLine
-    -- let (w, h) = dimension nums
-    --     inputType = validateInput input w h
-    -- if inputType == Error || (inputType == Help && Set.null minePs)
-    --     then do
-    --         putStrLn "Invalid coordiate, please input again.\n"
-    --         play opens minePs nums count
-
-    --     -- Only able to show possible safe Points after the first reveal.
-    --     else if inputType == Help
-    --         then do
-    --             putStrLn $ showAllPossibleSafePoints w h opens nums
-    --             play opens minePs nums count
-    --         else do
-    --             putStrLn ""
-    --             let Type point = inputType
-    --             if Set.null minePs -- Postpone the mine Points generation to the first hit
-    --                 then do
-    --                     let minePs' = minePoints w h count point
-    --                         nums'   = neighbourMines minePs' w h
-    --                     update opens minePs' nums' count point
-    --                 else
-    --                     update opens minePs nums count point
 
 -- | An extract function from play. This function is responsible for
 -- updating the open state of Points and the game layout.
