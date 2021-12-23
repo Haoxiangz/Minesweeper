@@ -4,6 +4,14 @@
 
 An ASCII style Minesweeper, and AI solver implemented by using backtracking algorithm written in Haskell.
 
+Build and run
+--------
+```
+stack build --ghc-options="-O2 -threaded -stsopts -eventlog"
+stack exec -- Minesweeper 30 16 99 +RTS -N2 -ls
+```
+
+
 Features
 --------
 
